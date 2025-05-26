@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import configuration from './config/configuration';
 import { configValidationSchema } from './config/env.validation';
 import { StorageModule } from './storage/storage.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { StorageModule } from './storage/storage.module';
       },
     }),
     StorageModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],

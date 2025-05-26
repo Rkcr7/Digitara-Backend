@@ -104,9 +104,7 @@ describe('StorageService', () => {
     });
 
     it('should throw error for missing file', async () => {
-      expect(() => service['validateFile'](null)).toThrow(
-        BadRequestException,
-      );
+      expect(() => service['validateFile'](null)).toThrow(BadRequestException);
     });
   });
 
@@ -131,4 +129,4 @@ describe('StorageService', () => {
       );
     });
   });
-}); 
+});
