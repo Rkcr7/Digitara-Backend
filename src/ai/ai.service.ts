@@ -122,6 +122,11 @@ export class AiService {
           `Extraction attempt ${attempt} failed: ${error.message}`,
         );
 
+        // If it's a NOT_A_RECEIPT error, don't retry
+        if (error.message?.startsWith('NOT_A_RECEIPT:')) {
+          throw error; // Throw immediately without retrying
+        }
+
         if (attempt < this.maxRetries) {
           await this.delay(this.retryDelay * attempt);
         }
@@ -139,29 +144,50 @@ export class AiService {
    */
   private getEnhancedPrompt(): string {
     return `
-You are an expert receipt parser. Analyze this receipt image and extract ALL information into the following JSON structure. Be flexible with different formats, languages, and currencies.
+You are an expert receipt parser. First, determine if this image is a receipt or invoice.
+
+STEP 1 - RECEIPT DETECTION:
+A receipt/invoice typically has:
+- Store/vendor name
+- Date of transaction
+- List of items/services with prices
+- Total amount
+- May have tax information
+- May have payment method
+
+If this is NOT a receipt/invoice (e.g., it's a random photo, document, ID card, etc.), return:
+{
+  "is_receipt": false,
+  "reason": "Brief explanation of what this image contains instead"
+}
+
+STEP 2 - IF IT IS A RECEIPT, extract ALL information:
 
 IMPORTANT INSTRUCTIONS:
-1. Detect the currency from the receipt (look for currency symbols like $, €, £, or codes like USD, EUR, CHF, SGD, AUD, CAD)
+1. Detect the currency from the receipt (look for currency symbols like $, €, £, ₹, or codes like USD, EUR, CHF, SGD, AUD, CAD, INR)
 2. If currency symbol is ambiguous ($), infer from store location or context
 3. Parse dates in any format and convert to YYYY-MM-DD
 4. Extract ALL line items, even if they have different formats
-5. CRITICAL: Determine if tax is INCLUSIVE or EXCLUSIVE:
+5. IMPORTANT: If the receipt shows a subtotal explicitly (before tax), use that exact value instead of calculating from items
+6. Handle grouped sections (e.g., "FOOD", "BEVERAGES") - include both individual items AND section totals if shown
+7. CRITICAL: Determine if tax is INCLUSIVE or EXCLUSIVE:
    - Tax-INCLUSIVE (common in Europe, Australia, etc): Tax is already included in the total. Look for phrases like "incl. VAT", "incl. MwSt", "GST inclusive", "including tax", "tax included"
-   - Tax-EXCLUSIVE (common in USA): Tax is added on top of subtotal. Total = Subtotal + Tax. Look for phrases like "plus tax", "excl. tax", "tax extra", "excluding tax", "+ tax"
+   - Tax-EXCLUSIVE (common in USA, India): Tax is added on top of subtotal. Total = Subtotal + Tax. Look for phrases like "plus tax", "excl. tax", "tax extra", "excluding tax", "+ tax", or separate tax line items (GST, CGST, SGST)
    - IMPORTANT: If the receipt explicitly states tax type (e.g., "excl. MwSt", "plus VAT"), use that information regardless of currency defaults
    - Only use currency-based defaults if no explicit tax information is found on the receipt
-6. Handle multiple tax types (e.g., GST, VAT, MwSt, Sales Tax, Alcohol Tax)
-7. If information is in a foreign language, translate item names to English
-8. Handle edge cases like discounts, tips, or special charges
-9. If any field cannot be determined, use null
-10. For tax-inclusive receipts: Calculate subtotal = total - tax
-11. For tax-exclusive receipts: Ensure total = subtotal + tax
+8. Handle multiple tax types (e.g., GST, VAT, MwSt, Sales Tax, CGST, SGST, Alcohol Tax)
+9. If information is in a foreign language, translate item names to English
+10. Handle edge cases like discounts, tips, or special charges
+11. If any field cannot be determined, use null
+12. For tax-inclusive receipts: Calculate subtotal = total - tax
+13. For tax-exclusive receipts: Ensure total = subtotal + tax
+14. CRITICAL: Extract monetary values EXACTLY as shown on the receipt without rounding
 
 OUTPUT FORMAT (return ONLY valid JSON, no additional text):
 {
+  "is_receipt": true,
   "date": "YYYY-MM-DD or null",
-  "currency": "3-letter code (USD, EUR, CAD, AUD, SGD, CHF, etc.)",
+  "currency": "3-letter code (USD, EUR, CAD, AUD, SGD, CHF, INR, etc.)",
   "vendor_name": "Store/Restaurant/Business name",
   "receipt_items": [
     {
@@ -177,7 +203,12 @@ OUTPUT FORMAT (return ONLY valid JSON, no additional text):
     "tax_rate": "percentage if shown or null",
     "tax_type": "GST/VAT/MwSt/Sales Tax/etc or null",
     "tax_inclusive": true/false,
-    "additional_taxes": []
+    "additional_taxes": [
+      {
+        "name": "CGST/SGST/etc if multiple taxes",
+        "amount": 0.00
+      }
+    ]
   },
   "total": 0.00,
   "payment_method": "Cash/Card/etc or null",
@@ -192,6 +223,7 @@ VALIDATION RULES:
 - For tax-inclusive: subtotal = total - tax
 - For tax-exclusive: total = subtotal + tax
 - tax_inclusive MUST be set to true or false based on receipt format
+- Extract values EXACTLY as shown on receipt (e.g., if subtotal shows 5880.00, use 5880.00, not 5879.20)
 `;
   }
 
@@ -207,6 +239,13 @@ VALIDATION RULES:
         .trim();
 
       const parsed = JSON.parse(cleanContent);
+
+      // Check if it's a receipt first
+      if (parsed.is_receipt === false) {
+        throw new Error(
+          `NOT_A_RECEIPT: ${parsed.reason || 'This image does not appear to be a receipt or invoice'}`,
+        );
+      }
 
       // Validate required fields
       if (!parsed.vendor_name) {
@@ -226,6 +265,10 @@ VALIDATION RULES:
 
       return validatedData;
     } catch (error) {
+      // If it's a NOT_A_RECEIPT error, preserve it
+      if (error.message.startsWith('NOT_A_RECEIPT:')) {
+        throw error;
+      }
       throw new Error(`Failed to parse AI response: ${error.message}`);
     }
   }
@@ -264,15 +307,15 @@ VALIDATION RULES:
       data.tax_details = {};
     }
 
-    // Determine if tax is inclusive based on currency/region if not specified
+        // Determine if tax is inclusive based on currency/region if not specified
     // This is only a fallback - the AI should have already detected explicit tax type mentions
     if (data.tax_details.tax_inclusive === undefined) {
-      // European and Australian currencies typically use tax-inclusive pricing
+            // European and Australian currencies typically use tax-inclusive pricing
       const taxInclusiveCurrencies = ['EUR', 'GBP', 'CHF', 'AUD', 'NZD'];
       data.tax_details.tax_inclusive = taxInclusiveCurrencies.includes(
         data.currency,
       );
-      
+
       this.logger.log(
         `No explicit tax type found in receipt. Using currency default for ${data.currency}: tax_inclusive = ${data.tax_details.tax_inclusive}`,
       );
@@ -289,12 +332,20 @@ VALIDATION RULES:
         data.subtotal = Number((data.total - data.tax).toFixed(2));
       }
     } else {
-      // Tax-exclusive: calculate subtotal from items if not provided
+      // Tax-exclusive: Trust the AI's extracted subtotal if provided
       if (!data.subtotal && data.receipt_items) {
-        data.subtotal = data.receipt_items.reduce(
+        // Only calculate from items if subtotal wasn't extracted
+        const calculatedSubtotal = data.receipt_items.reduce(
           (sum, item) => sum + item.item_cost * (item.quantity || 1),
           0,
         );
+        data.subtotal = Number(calculatedSubtotal.toFixed(2));
+        this.logger.log(
+          `Calculated subtotal from items: ${data.subtotal}. If incorrect, check if receipt shows explicit subtotal.`,
+        );
+      } else if (data.subtotal) {
+        // Log when using AI-extracted subtotal
+        this.logger.log(`Using AI-extracted subtotal: ${data.subtotal}`);
       }
     }
 

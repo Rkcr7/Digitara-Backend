@@ -192,7 +192,11 @@ export class ReceiptsService {
     const details: string[] = [];
 
     // Categorize errors for better user experience
-    if (error instanceof BadRequestException) {
+    if (error.message?.startsWith('NOT_A_RECEIPT:')) {
+      errorCode = 'NOT_A_RECEIPT';
+      message = error.message.replace('NOT_A_RECEIPT: ', '');
+      details.push('Please upload an image of a receipt or invoice');
+    } else if (error instanceof BadRequestException) {
       errorCode = 'VALIDATION_ERROR';
       message = error.message;
     } else if (
@@ -214,10 +218,16 @@ export class ReceiptsService {
     ) {
       errorCode = 'CONFIGURATION_ERROR';
       message = 'Service configuration error. Please contact support.';
+    } else if (
+      error.message?.includes('At least one receipt item is required')
+    ) {
+      errorCode = 'NO_ITEMS_FOUND';
+      message =
+        'Could not identify any items on the receipt. The image might be unclear or incomplete.';
     }
 
     details.push(`Processing time: ${processingTime}ms`);
-    if (error.stack) {
+    if (error.stack && errorCode !== 'NOT_A_RECEIPT') {
       details.push(`Error details: ${error.message}`);
     }
 
