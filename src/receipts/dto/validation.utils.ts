@@ -111,16 +111,58 @@ export function isSupportedCurrency(currency: string): boolean {
 export function validateExtractionConsistency(data: any): string[] {
   const warnings: string[] = [];
 
-  // Check mathematical consistency
-  if (data.subtotal && data.tax && data.total) {
-    const calculatedTotal = Number(data.subtotal) + Number(data.tax);
-    const actualTotal = Number(data.total);
+  // Check mathematical consistency based on tax type
+  if (
+    data.subtotal !== undefined &&
+    data.tax !== undefined &&
+    data.total !== undefined
+  ) {
+    const subtotal = Number(data.subtotal);
+    const tax = Number(data.tax);
+    const total = Number(data.total);
     const tolerance = 0.01;
 
-    if (Math.abs(calculatedTotal - actualTotal) > tolerance) {
-      warnings.push(
-        `Mathematical inconsistency: subtotal (${data.subtotal}) + tax (${data.tax}) = ${calculatedTotal.toFixed(2)}, but total is ${actualTotal.toFixed(2)}`,
-      );
+    // Check if tax_details exists and has tax_inclusive flag
+    const isTaxInclusive = data.tax_details?.tax_inclusive === true;
+
+    if (isTaxInclusive) {
+      // For tax-inclusive receipts, the tax is already part of the total
+      // So subtotal should be approximately: total - tax
+      const expectedSubtotal = total - tax;
+      const subtotalDifference = Math.abs(expectedSubtotal - subtotal);
+
+      if (subtotalDifference > tolerance) {
+        // Check if the receipt might have items totaling to the full amount (common in inclusive receipts)
+        const itemsTotal =
+          data.receipt_items?.reduce(
+            (sum: number, item: any) =>
+              sum + (item.item_cost || 0) * (item.quantity || 1),
+            0,
+          ) || 0;
+
+        // If items total matches the total (not subtotal), it's a common tax-inclusive pattern
+        if (Math.abs(itemsTotal - total) <= tolerance) {
+          // This is expected for tax-inclusive receipts, no warning needed
+        } else {
+          warnings.push(
+            `Tax-inclusive receipt validation: Expected subtotal of ${expectedSubtotal.toFixed(
+              2,
+            )} (total ${total} - tax ${tax}), but found ${subtotal}`,
+          );
+        }
+      }
+    } else {
+      // For tax-exclusive receipts, subtotal + tax should equal total
+      const calculatedTotal = subtotal + tax;
+      const totalDifference = Math.abs(calculatedTotal - total);
+
+      if (totalDifference > tolerance) {
+        warnings.push(
+          `Mathematical inconsistency: subtotal (${subtotal}) + tax (${tax}) = ${calculatedTotal.toFixed(
+            2,
+          )}, but total is ${total}`,
+        );
+      }
     }
   }
 

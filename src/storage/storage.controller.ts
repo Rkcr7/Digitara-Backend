@@ -22,13 +22,32 @@ export class StorageController {
    */
   @Get('images/:filename')
   async serveImage(@Param('filename') filename: string, @Res() res: Response) {
-    const exists = await this.storageService.fileExists(filename);
-    if (!exists) {
-      throw new NotFoundException('File not found');
-    }
+    try {
+      const exists = await this.storageService.fileExists(filename);
+      if (!exists) {
+        throw new NotFoundException(`Image not found: ${filename}`);
+      }
 
-    const filePath = this.storageService.getFilePath(filename);
-    return res.sendFile(filePath);
+      const filePath = this.storageService.getFilePath(filename);
+      
+      // Set proper headers for images
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.setHeader('Content-Type', 'image/jpeg'); // Adjust based on file type if needed
+      
+      return res.sendFile(filePath, (err) => {
+        if (err) {
+          console.error(`Error serving image ${filename}:`, err);
+          if (!res.headersSent) {
+            res.status(404).json({ message: 'Image not found' });
+          }
+        }
+      });
+    } catch (error) {
+      console.error(`Error in serveImage for ${filename}:`, error);
+      if (!res.headersSent) {
+        res.status(404).json({ message: 'Image not found' });
+      }
+    }
   }
 
   /**

@@ -1,4 +1,5 @@
 import { IsOptional, IsString, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class ExtractReceiptDto {
   /**
@@ -14,6 +15,12 @@ export class ExtractReceiptDto {
    * Default: true
    */
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return value;
+  })
   @IsBoolean({ message: 'Save image flag must be a boolean' })
   saveImage?: boolean = true;
 
@@ -22,6 +29,12 @@ export class ExtractReceiptDto {
    * Default: false (for cleaner response)
    */
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.toLowerCase() === 'true';
+    }
+    return value;
+  })
   @IsBoolean({ message: 'Include metadata flag must be a boolean' })
   includeMetadata?: boolean = false;
 

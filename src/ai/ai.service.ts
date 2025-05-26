@@ -12,6 +12,7 @@ export interface ReceiptItemDto {
 export interface TaxDetailsDto {
   tax_rate?: string;
   tax_type?: string;
+  tax_inclusive?: boolean;
   additional_taxes?: Array<{
     name: string;
     amount: number;
@@ -145,12 +146,17 @@ IMPORTANT INSTRUCTIONS:
 2. If currency symbol is ambiguous ($), infer from store location or context
 3. Parse dates in any format and convert to YYYY-MM-DD
 4. Extract ALL line items, even if they have different formats
-5. Calculate or extract tax - it might be shown as percentage, amount, or included in total
-6. Handle multiple tax types (e.g., GST, VAT, Sales Tax, Alcohol Tax)
+5. CRITICAL: Determine if tax is INCLUSIVE or EXCLUSIVE:
+   - Tax-INCLUSIVE (common in Europe, Australia, etc): Tax is already included in the total. Look for phrases like "incl. VAT", "incl. MwSt", "GST inclusive", "including tax", "tax included"
+   - Tax-EXCLUSIVE (common in USA): Tax is added on top of subtotal. Total = Subtotal + Tax. Look for phrases like "plus tax", "excl. tax", "tax extra", "excluding tax", "+ tax"
+   - IMPORTANT: If the receipt explicitly states tax type (e.g., "excl. MwSt", "plus VAT"), use that information regardless of currency defaults
+   - Only use currency-based defaults if no explicit tax information is found on the receipt
+6. Handle multiple tax types (e.g., GST, VAT, MwSt, Sales Tax, Alcohol Tax)
 7. If information is in a foreign language, translate item names to English
 8. Handle edge cases like discounts, tips, or special charges
 9. If any field cannot be determined, use null
-10. Ensure mathematical accuracy: total should equal subtotal + tax (within 0.01 tolerance)
+10. For tax-inclusive receipts: Calculate subtotal = total - tax
+11. For tax-exclusive receipts: Ensure total = subtotal + tax
 
 OUTPUT FORMAT (return ONLY valid JSON, no additional text):
 {
@@ -169,7 +175,8 @@ OUTPUT FORMAT (return ONLY valid JSON, no additional text):
   "tax": 0.00,
   "tax_details": {
     "tax_rate": "percentage if shown or null",
-    "tax_type": "GST/VAT/Sales Tax/etc or null",
+    "tax_type": "GST/VAT/MwSt/Sales Tax/etc or null",
+    "tax_inclusive": true/false,
     "additional_taxes": []
   },
   "total": 0.00,
@@ -182,7 +189,9 @@ VALIDATION RULES:
 - Currency must be a valid 3-letter code
 - Date must be in YYYY-MM-DD format or null
 - Items array cannot be empty (at least one item must be extracted)
-- Mathematical validation: |total - (subtotal + tax)| <= 0.01
+- For tax-inclusive: subtotal = total - tax
+- For tax-exclusive: total = subtotal + tax
+- tax_inclusive MUST be set to true or false based on receipt format
 `;
   }
 
@@ -250,19 +259,60 @@ VALIDATION RULES:
       data.date = this.parseAndFormatDate(data.date);
     }
 
-    // Calculate subtotal if not provided
-    if (!data.subtotal && data.receipt_items) {
-      data.subtotal = data.receipt_items.reduce(
-        (sum, item) => sum + item.item_cost * (item.quantity || 1),
-        0,
+    // Ensure tax_details exists
+    if (!data.tax_details) {
+      data.tax_details = {};
+    }
+
+    // Determine if tax is inclusive based on currency/region if not specified
+    // This is only a fallback - the AI should have already detected explicit tax type mentions
+    if (data.tax_details.tax_inclusive === undefined) {
+      // European and Australian currencies typically use tax-inclusive pricing
+      const taxInclusiveCurrencies = ['EUR', 'GBP', 'CHF', 'AUD', 'NZD'];
+      data.tax_details.tax_inclusive = taxInclusiveCurrencies.includes(
+        data.currency,
+      );
+      
+      this.logger.log(
+        `No explicit tax type found in receipt. Using currency default for ${data.currency}: tax_inclusive = ${data.tax_details.tax_inclusive}`,
+      );
+    } else {
+      this.logger.log(
+        `Explicit tax type detected from receipt: tax_inclusive = ${data.tax_details.tax_inclusive}`,
       );
     }
 
-    // Validate mathematical consistency
-    const calculatedTotal = (data.subtotal || 0) + (data.tax || 0);
-    const tolerance = 0.01;
+    // Calculate subtotal based on tax type
+    if (data.tax_details.tax_inclusive) {
+      // Tax-inclusive: subtotal should be total - tax
+      if (!data.subtotal && data.total && data.tax) {
+        data.subtotal = Number((data.total - data.tax).toFixed(2));
+      }
+    } else {
+      // Tax-exclusive: calculate subtotal from items if not provided
+      if (!data.subtotal && data.receipt_items) {
+        data.subtotal = data.receipt_items.reduce(
+          (sum, item) => sum + item.item_cost * (item.quantity || 1),
+          0,
+        );
+      }
+    }
 
-    if (Math.abs(calculatedTotal - data.total) > tolerance) {
+    // Validate mathematical consistency based on tax type
+    const tolerance = 0.01;
+    let isValid = false;
+
+    if (data.tax_details.tax_inclusive) {
+      // For tax-inclusive: subtotal + tax should equal total
+      const calculatedTotal = (data.subtotal || 0) + (data.tax || 0);
+      isValid = Math.abs(calculatedTotal - data.total) <= tolerance;
+    } else {
+      // For tax-exclusive: subtotal + tax should equal total
+      const calculatedTotal = (data.subtotal || 0) + (data.tax || 0);
+      isValid = Math.abs(calculatedTotal - data.total) <= tolerance;
+    }
+
+    if (!isValid) {
       data.confidence_score = 0.8; // Lower confidence if totals don't match
     } else {
       data.confidence_score = 0.95;
@@ -287,11 +337,17 @@ VALIDATION RULES:
     if (data.receipt_items.length === 0)
       warnings.push('No items could be extracted');
 
-    if (
-      data.subtotal &&
-      Math.abs(data.subtotal + data.tax - data.total) > 0.01
-    ) {
-      warnings.push('Total does not match subtotal + tax');
+    // Check mathematical consistency based on tax type
+    const tolerance = 0.01;
+    if (data.subtotal !== undefined && data.tax !== undefined) {
+      const calculatedTotal = data.subtotal + data.tax;
+      const difference = Math.abs(calculatedTotal - data.total);
+
+      if (difference > tolerance) {
+        warnings.push(
+          `Mathematical validation: subtotal (${data.subtotal}) + tax (${data.tax}) does not equal total (${data.total})`,
+        );
+      }
     }
 
     if (data.confidence_score < 0.9) {
