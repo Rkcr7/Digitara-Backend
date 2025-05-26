@@ -11,4 +11,9 @@ export {
 } from './receipt-response.dto';
 
 // Validation utilities
-export { validateReceiptFile } from './validation.utils';
+export {
+  validateReceiptFile,
+  validateExtractionConsistency,
+  formatValidationErrors,
+  isSupportedCurrency,
+} from './validation.utils';

@@ -6,6 +6,7 @@ import configuration from './config/configuration';
 import { configValidationSchema } from './config/env.validation';
 import { StorageModule } from './storage/storage.module';
 import { AiModule } from './ai/ai.module';
+import { ReceiptsModule } from './receipts/receipts.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AiModule } from './ai/ai.module';
     }),
     StorageModule,
     AiModule,
+    ReceiptsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
