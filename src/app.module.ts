@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
 import { configValidationSchema } from './config/env.validation';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { configValidationSchema } from './config/env.validation';
         abortEarly: true,
       },
     }),
+    StorageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
