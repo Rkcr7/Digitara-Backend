@@ -54,3 +54,12 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Uploaded files - don't commit user receipts
+/uploads
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.webp
+!sample-receipts/

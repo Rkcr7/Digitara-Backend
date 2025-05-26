@@ -175,12 +175,16 @@ IMPORTANT INSTRUCTIONS:
    - Tax-EXCLUSIVE (common in USA, India): Tax is added on top of subtotal. Total = Subtotal + Tax. Look for phrases like "plus tax", "excl. tax", "tax extra", "excluding tax", "+ tax", or separate tax line items (GST, CGST, SGST)
    - IMPORTANT: If the receipt explicitly states tax type (e.g., "excl. MwSt", "plus VAT"), use that information regardless of currency defaults
    - Only use currency-based defaults if no explicit tax information is found on the receipt
-8. Handle multiple tax types (e.g., GST, VAT, MwSt, Sales Tax, CGST, SGST, Alcohol Tax)
+8. CRITICAL: Handle multiple tax types properly:
+   - Look for ALL tax line items (e.g., "Tax 1", "Alcohol Tax", "GST", "VAT", "CGST", "SGST", etc.)
+   - The "tax" field should be the TOTAL of all taxes combined
+   - List individual taxes in "additional_taxes" array
+   - Examples: If receipt shows "Tax 1: $6.19" and "Alcohol Tax: $1.94", then tax = 8.13 and additional_taxes = [{"name": "Tax 1", "amount": 6.19}, {"name": "Alcohol Tax", "amount": 1.94}]
 9. If information is in a foreign language, translate item names to English
 10. Handle edge cases like discounts, tips, or special charges
 11. If any field cannot be determined, use null
 12. For tax-inclusive receipts: Calculate subtotal = total - tax
-13. For tax-exclusive receipts: Ensure total = subtotal + tax
+13. For tax-exclusive receipts: Ensure total = subtotal + tax (where tax is the sum of ALL taxes)
 14. CRITICAL: Extract monetary values EXACTLY as shown on the receipt without rounding
 
 OUTPUT FORMAT (return ONLY valid JSON, no additional text):
@@ -307,10 +311,10 @@ VALIDATION RULES:
       data.tax_details = {};
     }
 
-        // Determine if tax is inclusive based on currency/region if not specified
+    // Determine if tax is inclusive based on currency/region if not specified
     // This is only a fallback - the AI should have already detected explicit tax type mentions
     if (data.tax_details.tax_inclusive === undefined) {
-            // European and Australian currencies typically use tax-inclusive pricing
+      // European and Australian currencies typically use tax-inclusive pricing
       const taxInclusiveCurrencies = ['EUR', 'GBP', 'CHF', 'AUD', 'NZD'];
       data.tax_details.tax_inclusive = taxInclusiveCurrencies.includes(
         data.currency,
@@ -346,6 +350,25 @@ VALIDATION RULES:
       } else if (data.subtotal) {
         // Log when using AI-extracted subtotal
         this.logger.log(`Using AI-extracted subtotal: ${data.subtotal}`);
+      }
+    }
+
+    // Handle multiple taxes: ensure tax field is the sum of all taxes
+    if (
+      data.tax_details?.additional_taxes &&
+      data.tax_details.additional_taxes.length > 0
+    ) {
+      const totalTaxFromAdditional = data.tax_details.additional_taxes.reduce(
+        (sum, tax) => sum + (tax.amount || 0),
+        0,
+      );
+
+      // If tax field doesn't match the sum of additional taxes, use the sum
+      if (Math.abs(data.tax - totalTaxFromAdditional) > 0.01) {
+        this.logger.log(
+          `Multiple taxes detected. Original tax: ${data.tax}, Sum of additional taxes: ${totalTaxFromAdditional}. Using sum.`,
+        );
+        data.tax = Number(totalTaxFromAdditional.toFixed(2));
       }
     }
 
