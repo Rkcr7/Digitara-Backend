@@ -7,7 +7,7 @@ export default () => ({
   upload: {
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10485760, // 10MB
     uploadDir: process.env.UPLOAD_DIR || 'uploads',
-    allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png'],
+    allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
   },
   cors: {
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',

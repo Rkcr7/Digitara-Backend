@@ -38,14 +38,21 @@ export class ReceiptsService {
 
     try {
       this.logger.log(`Starting receipt extraction - ID: ${extractionId}`);
+      let imageUrl: string | undefined;
 
       // Validate uploaded file
       validateReceiptFile(file);
 
-      // Save image if requested (default: true)
-      let imageUrl: string | undefined;
-      let savedFileName: string | undefined;
 
+      // Extract receipt data using AI service
+      const extractedData = await this.aiService.extractReceiptData(
+        file.buffer,
+      );
+      // If aiService.extractReceiptData throws "NOT_A_RECEIPT:", 
+      // execution will jump to the catch block below, skipping image save.
+
+      // Save image if requested (default: true) AND AI extraction was successful
+      // imageUrl is declared at the top of the try block
       if (extractOptions.saveImage !== false) {
         try {
           imageUrl = await this.storageService.saveImage(
@@ -57,14 +64,9 @@ export class ReceiptsService {
           this.logger.warn(
             `Failed to save image for extraction ${extractionId}: ${error.message}`,
           );
-          // Continue with extraction even if image saving fails
+          // Continue with creating response even if image saving fails, but AI was successful
         }
       }
-
-      // Extract receipt data using AI service
-      const extractedData = await this.aiService.extractReceiptData(
-        file.buffer,
-      );
 
       // Validate extraction consistency and generate warnings
       const consistencyWarnings = validateExtractionConsistency(extractedData);
