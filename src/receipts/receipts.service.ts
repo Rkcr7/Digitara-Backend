@@ -48,12 +48,11 @@ export class ReceiptsService {
 
       if (extractOptions.saveImage !== false) {
         try {
-          savedFileName = await this.storageService.saveImage(
+          imageUrl = await this.storageService.saveImage(
             file,
             extractionId,
           );
-          imageUrl = `/storage/images/${savedFileName}`;
-          this.logger.log(`Image saved: ${savedFileName}`);
+          this.logger.log(`Image saved: ${imageUrl}`);
         } catch (error) {
           this.logger.warn(
             `Failed to save image for extraction ${extractionId}: ${error.message}`,

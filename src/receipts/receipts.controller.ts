@@ -9,6 +9,9 @@ import {
   HttpStatus,
   HttpCode,
   Logger,
+  Param,
+  Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ReceiptsService } from './receipts.service';
@@ -80,5 +83,67 @@ export class ReceiptsController {
     suggestions: string[];
   }> {
     return await this.receiptsService.validateExtraction(data);
+  }
+
+  /**
+   * Get extraction by ID
+   * GET /extract-receipt-details/history/:extractionId
+   */
+  @Get('history/:extractionId')
+  async getExtractionById(
+    @Param('extractionId') extractionId: string,
+  ): Promise<ReceiptResponseDto> {
+    this.logger.log(`Extraction history lookup requested - ID: ${extractionId}`);
+
+    const receipt = await this.receiptsService.getExtractionById(extractionId);
+    
+    if (!receipt) {
+      throw new NotFoundException(
+        `No extraction found with ID: ${extractionId}`,
+      );
+    }
+
+    return receipt;
+  }
+
+  /**
+   * Get all receipts with pagination
+   * GET /extract-receipt-details/receipts
+   */
+  @Get('receipts')
+  async getAllReceipts(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<{
+    receipts: ReceiptResponseDto[];
+    pagination: {
+      limit: number;
+      offset: number;
+      total: number;
+    };
+  }> {
+    const limitNum = limit ? parseInt(limit, 10) : 50;
+    const offsetNum = offset ? parseInt(offset, 10) : 0;
+
+    // Validate pagination parameters
+    if (limitNum < 1 || limitNum > 100) {
+      throw new BadRequestException('Limit must be between 1 and 100');
+    }
+    if (offsetNum < 0) {
+      throw new BadRequestException('Offset must be 0 or greater');
+    }
+
+    this.logger.log(`Fetching receipts - Limit: ${limitNum}, Offset: ${offsetNum}`);
+
+    const receipts = await this.receiptsService.getAllReceipts(limitNum, offsetNum);
+    
+    return {
+      receipts,
+      pagination: {
+        limit: limitNum,
+        offset: offsetNum,
+        total: receipts.length, // Note: This is the returned count, not total in DB
+      },
+    };
   }
 }
