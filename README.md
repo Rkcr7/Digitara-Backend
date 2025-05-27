@@ -22,7 +22,7 @@ The Receipt Extractor Backend is a robust NestJS-based API service that automati
 
 ### 🧠 **AI-Powered Extraction**
 - **Multi-language Support**: Processes receipts in multiple languages, translates item names to English
-- **12+ Currency Support**: USD, EUR, GBP, CAD, AUD, SGD, CHF, JPY, CNY, INR, NZD, HKD
+- **Multiple Currency Support**: USD, EUR, GBP, CAD, AUD, SGD, CHF, JPY, CNY, INR, NZD, HKD
 - **Smart Data Validation**: Mathematical consistency checks and data verification
 - **Confidence Scoring**: Returns confidence levels for extracted data quality
 
