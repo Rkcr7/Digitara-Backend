@@ -7,6 +7,7 @@ import { configValidationSchema } from './config/env.validation';
 import { StorageModule } from './storage/storage.module';
 import { AiModule } from './ai/ai.module';
 import { ReceiptsModule } from './receipts/receipts.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ReceiptsModule } from './receipts/receipts.module';
         abortEarly: true,
       },
     }),
+    DatabaseModule,
     StorageModule,
     AiModule,
     ReceiptsModule,
