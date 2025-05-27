@@ -292,14 +292,6 @@ export class ReceiptsService {
   }
 
   /**
-   * Get supported currencies for client reference
-   * @returns Array of supported currency codes
-   */
-  getSupportedCurrencies(): string[] {
-    return this.validationService.getSupportedCurrencies();
-  }
-
-  /**
    * Get service health and capabilities
    * @returns Service status information
    */

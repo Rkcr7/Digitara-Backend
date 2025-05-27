@@ -48,17 +48,6 @@ export class ReceiptsController {
   }
 
   /**
-   * Get supported currencies
-   * GET /extract-receipt-details/currencies
-   */
-  @Get('currencies')
-  getSupportedCurrencies(): { currencies: string[] } {
-    return {
-      currencies: this.receiptsService.getSupportedCurrencies(),
-    };
-  }
-
-  /**
    * Get service health and capabilities
    * GET /extract-receipt-details/health
    */

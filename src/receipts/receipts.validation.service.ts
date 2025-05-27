@@ -148,27 +148,6 @@ export class ReceiptsValidationService {
   }
 
   /**
-   * Get supported currencies for client reference
-   * @returns Array of supported currency codes
-   */
-  getSupportedCurrencies(): string[] {
-    return [
-      'USD',
-      'EUR',
-      'GBP',
-      'CAD',
-      'AUD',
-      'SGD',
-      'CHF',
-      'JPY',
-      'CNY',
-      'INR',
-      'NZD',
-      'HKD',
-    ];
-  }
-
-  /**
    * Get service health and capabilities
    * @returns Service status information
    */
