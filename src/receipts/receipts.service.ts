@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AiService } from '../ai/ai.service';
 import { StorageService } from '../storage/storage.service';
 import { ReceiptsValidationService } from './receipts.validation.service';
+import { DatabaseService } from '../database/database.service';
 import {
   ExtractReceiptDto,
   ReceiptResponseDto,
@@ -19,6 +20,7 @@ export class ReceiptsService {
     private readonly aiService: AiService,
     private readonly storageService: StorageService,
     private readonly validationService: ReceiptsValidationService,
+    private readonly databaseService: DatabaseService,
   ) {}
 
   /**
@@ -111,6 +113,36 @@ export class ReceiptsService {
         excludeExtraneousValues: true,
       });
 
+      // Save to database (with error handling to not break the API response)
+      try {
+        const saveData = {
+          extraction_id: extractionId,
+          date: extractedData.date,
+          currency: extractedData.currency || 'USD',
+          vendor_name: extractedData.vendor_name || 'Unknown',
+          subtotal: extractedData.subtotal,
+          tax: extractedData.tax || 0,
+          total: extractedData.total || 0,
+          payment_method: extractedData.payment_method,
+          receipt_number: extractedData.receipt_number,
+          confidence_score: extractedData.confidence_score,
+          image_url: imageUrl,
+          status,
+          receipt_items: extractedData.receipt_items || [],
+          extraction_metadata: extractOptions.includeMetadata ? {
+            processing_time: Date.now() - startTime,
+            ai_model: extractedData.extraction_metadata?.ai_model || 'gemini-2.0-flash',
+            warnings: allWarnings,
+          } : undefined,
+        };
+
+        await this.databaseService.saveReceipt(saveData);
+        this.logger.log(`Receipt data saved to database - ID: ${extractionId}`);
+      } catch (dbError) {
+        this.logger.warn(`Failed to save receipt to database: ${dbError.message}`);
+        // Don't fail the API call if database save fails
+      }
+
       this.logger.log(
         `Receipt extraction completed - ID: ${extractionId}, Status: ${status}, Processing time: ${Date.now() - startTime}ms`,
       );
@@ -134,21 +166,118 @@ export class ReceiptsService {
   }
 
   /**
-   * Get extraction history/status (future feature)
+   * Get extraction by ID from database
    * @param extractionId - Extraction ID to look up
    * @returns Promise<ReceiptResponseDto | null>
    */
   async getExtractionById(
     extractionId: string,
   ): Promise<ReceiptResponseDto | null> {
-    // TODO: Implement extraction history storage (database)
-    // For now, return null as we don't persist extractions
-    this.logger.log(
-      `Extraction history lookup requested for ID: ${extractionId}`,
-    );
-    return null;
+    try {
+      this.logger.log(`Looking up extraction by ID: ${extractionId}`);
+
+      const savedReceipt = await this.databaseService.getReceiptByExtractionId(extractionId);
+      
+      if (!savedReceipt) {
+        this.logger.log(`No receipt found for extraction ID: ${extractionId}`);
+        return null;
+      }
+
+      // Convert database format back to API response format
+      const responseData = {
+        status: savedReceipt.status,
+        extraction_id: savedReceipt.extraction_id,
+        date: savedReceipt.date,
+        currency: savedReceipt.currency,
+        vendor_name: savedReceipt.vendor_name,
+        receipt_items: savedReceipt.receipt_items.map(item => ({
+          item_name: item.item_name,
+          item_cost: item.item_cost,
+          quantity: item.quantity,
+          original_name: item.original_name,
+        })),
+        subtotal: savedReceipt.subtotal,
+        tax: savedReceipt.tax,
+        total: savedReceipt.total,
+        payment_method: savedReceipt.payment_method,
+        receipt_number: savedReceipt.receipt_number,
+        confidence_score: savedReceipt.confidence_score,
+        image_url: savedReceipt.image_url,
+        extracted_at: savedReceipt.extracted_at,
+        extraction_metadata: savedReceipt.extraction_metadata ? {
+          processing_time: savedReceipt.extraction_metadata.processing_time,
+          ai_model: savedReceipt.extraction_metadata.ai_model,
+          warnings: savedReceipt.extraction_metadata.warnings,
+        } : undefined,
+      };
+
+      const response = plainToInstance(ReceiptResponseDto, responseData, {
+        excludeExtraneousValues: true,
+      });
+
+      this.logger.log(`Retrieved extraction from database - ID: ${extractionId}`);
+      return response;
+
+    } catch (error) {
+      this.logger.error(`Failed to get extraction by ID ${extractionId}: ${error.message}`);
+      return null;
+    }
   }
 
+
+  /**
+   * Get all receipts with pagination
+   * @param limit - Number of receipts to return (default: 50)
+   * @param offset - Number of receipts to skip (default: 0)
+   * @returns Promise<ReceiptResponseDto[]>
+   */
+  async getAllReceipts(limit: number = 50, offset: number = 0): Promise<ReceiptResponseDto[]> {
+    try {
+      this.logger.log(`Fetching ${limit} receipts with offset ${offset}`);
+
+      const savedReceipts = await this.databaseService.getAllReceipts(limit, offset);
+      
+      const receipts = savedReceipts.map(savedReceipt => {
+        const responseData = {
+          status: savedReceipt.status,
+          extraction_id: savedReceipt.extraction_id,
+          date: savedReceipt.date,
+          currency: savedReceipt.currency,
+          vendor_name: savedReceipt.vendor_name,
+          receipt_items: savedReceipt.receipt_items.map(item => ({
+            item_name: item.item_name,
+            item_cost: item.item_cost,
+            quantity: item.quantity,
+            original_name: item.original_name,
+          })),
+          subtotal: savedReceipt.subtotal,
+          tax: savedReceipt.tax,
+          total: savedReceipt.total,
+          payment_method: savedReceipt.payment_method,
+          receipt_number: savedReceipt.receipt_number,
+          confidence_score: savedReceipt.confidence_score,
+          image_url: savedReceipt.image_url,
+          extracted_at: savedReceipt.extracted_at,
+          extraction_metadata: savedReceipt.extraction_metadata ? {
+            processing_time: savedReceipt.extraction_metadata.processing_time,
+            ai_model: savedReceipt.extraction_metadata.ai_model,
+            warnings: savedReceipt.extraction_metadata.warnings,
+          } : undefined,
+        };
+
+        return plainToInstance(ReceiptResponseDto, responseData, {
+          excludeExtraneousValues: true,
+        });
+      });
+
+      this.logger.log(`Retrieved ${receipts.length} receipts from database`);
+      return receipts;
+
+    } catch (error) {
+      this.logger.error(`Failed to get all receipts: ${error.message}`);
+      throw error;
+    }
+  }
 
   /**
    * Validate extraction results and provide suggestions
