@@ -22,7 +22,7 @@ The Receipt Extractor Backend is a robust NestJS-based API service that automati
 
 ### 🧠 **AI-Powered Extraction**
 - **Multi-language Support**: Processes receipts in multiple languages, translates item names to English
-- **12+ Currency Support**: USD, EUR, GBP, CAD, AUD, SGD, CHF, JPY, CNY, INR, NZD, HKD
+- **Multiple Currency Support**: USD, EUR, GBP, CAD, AUD, SGD, CHF, JPY, CNY, INR, NZD, HKD
 - **Smart Data Validation**: Mathematical consistency checks and data verification
 - **Confidence Scoring**: Provides proper confidence levels (e.g., 0.95 for high quality, 0.80 for mathematical inconsistencies, 0.70 for poor image quality where essential data like total is still extracted, and 0.50 for very poor image quality where critical data like total is unextractable). Image quality assessment directly influences this score and generates specific warnings.
 
