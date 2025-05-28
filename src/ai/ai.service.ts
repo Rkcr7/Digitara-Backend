@@ -20,6 +20,12 @@ export interface TaxDetailsDto {
   }>;
 }
 
+// New DTO for image quality
+export interface ImageQualityDto {
+  is_clear: boolean;
+  issues: string[];
+}
+
 export interface ExtractedReceiptData {
   date: string;
   currency: string;
@@ -31,6 +37,7 @@ export interface ExtractedReceiptData {
   total: number;
   payment_method?: string;
   receipt_number?: string;
+  image_quality?: ImageQualityDto;
   confidence_score?: number;
   extraction_metadata?: {
     processing_time: number;
@@ -151,8 +158,8 @@ export class AiService {
         .replace(/```\s*/g, '')
         .trim();
 
-      // // Log the cleaned content for debugging JSON parsing issues
-      // this.logger.debug('AI Response (cleaned):', cleanContent);
+      // Log the cleaned content for debugging JSON parsing issues
+      this.logger.debug('AI Response (cleaned):', cleanContent);
 
       const parsed = JSON.parse(cleanContent);
 
@@ -172,8 +179,18 @@ export class AiService {
         throw new Error('At least one receipt item is required');
       }
 
-      if (typeof parsed.total !== 'number' || parsed.total < 0) {
-        throw new Error('Total must be a positive number');
+      // Validate total, allowing null if image quality is poor
+      if (parsed.image_quality && parsed.image_quality.is_clear === false) {
+        if (parsed.total !== null && (typeof parsed.total !== 'number' || parsed.total < 0)) {
+          throw new Error(
+            'Total must be a positive number or null if image quality is poor',
+          );
+        }
+      } else {
+        // Strict validation for total if image quality is good or not specified as poor
+        if (typeof parsed.total !== 'number' || parsed.total < 0) {
+          throw new Error('Total must be a positive number');
+        }
       }
 
       // Set defaults and validate data
@@ -308,6 +325,23 @@ export class AiService {
       data.confidence_score = 0.95;
     }
 
+    // Adjust confidence score based on image quality
+    if (data.image_quality && data.image_quality.is_clear === false) {
+      if (data.total === null) {
+        // Critical data missing due to very poor image quality
+        data.confidence_score = 0.5;
+        this.logger.log(
+          `Very poor image quality (total is null). Setting confidence score to ${data.confidence_score}`,
+        );
+      } else {
+        // Poor image quality, but total was extracted
+        data.confidence_score = 0.7;
+        this.logger.log(
+          `Poor image quality (but total extracted). Setting confidence score to ${data.confidence_score}`,
+        );
+      }
+    }
+
     // Ensure all monetary values are numbers
     data.total = Number(data.total) || 0;
     data.tax = Number(data.tax) || 0;
@@ -326,6 +360,39 @@ export class AiService {
     if (!data.vendor_name) warnings.push('Vendor name could not be determined');
     if (data.receipt_items.length === 0)
       warnings.push('No items could be extracted');
+
+    // Add general image quality warnings
+    if (
+      data.image_quality &&
+      data.image_quality.is_clear === false &&
+      data.image_quality.issues &&
+      data.image_quality.issues.length > 0
+    ) {
+      data.image_quality.issues.forEach((issue) => {
+        warnings.push(`Image Quality: ${issue}`);
+      });
+    }
+
+    // Add specific warnings for items affected by poor image quality
+    if (data.image_quality && data.image_quality.is_clear === false) {
+      data.receipt_items.forEach((item, index) => {
+        if (item.item_name === 'Unknown Item (unclear image)') {
+          warnings.push(
+            `Image Quality: Item name for item ${index + 1} could not be identified due to poor readability.`,
+          );
+        }
+        // Check if item_cost is 0.00 AND original_name is not null or "Unknown Item (unclear image)"
+        // This helps differentiate from items that genuinely cost 0.00
+        // However, the AI might return 0.00 for cost even if name is also unknown.
+        // A more robust check might involve looking at original AI response if it included confidence per field.
+        // For now, we'll assume if image quality is poor and cost is 0, it's likely due to readability.
+        if (item.item_cost === 0.00) {
+          warnings.push(
+            `Image Quality: Item cost for '${item.item_name}' (item ${index + 1}) set to 0.00 due to poor readability or missing value.`,
+          );
+        }
+      });
+    }
 
     // Check mathematical consistency based on tax type
     const tolerance = 0.01;

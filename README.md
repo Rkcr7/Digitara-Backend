@@ -24,7 +24,7 @@ The Receipt Extractor Backend is a robust NestJS-based API service that automati
 - **Multi-language Support**: Processes receipts in multiple languages, translates item names to English
 - **12+ Currency Support**: USD, EUR, GBP, CAD, AUD, SGD, CHF, JPY, CNY, INR, NZD, HKD
 - **Smart Data Validation**: Mathematical consistency checks and data verification
-- **Confidence Scoring**: Returns confidence levels for extracted data quality
+- **Confidence Scoring**: Provides proper confidence levels (e.g., 0.95 for high quality, 0.80 for mathematical inconsistencies, 0.70 for poor image quality where essential data like total is still extracted, and 0.50 for very poor image quality where critical data like total is unextractable). Image quality assessment directly influences this score and generates specific warnings.
 
 ### 🗄️ **Database Integration & Cloud Storage**
 - **Supabase Integration**: Automatic receipt data persistence to cloud database
@@ -438,6 +438,17 @@ The primary test suite is `src/receipts/receipts.service.spec.ts`, which covers 
 - **Error Scenarios**: Covers various error conditions related to file validation, AI responses, and service availability.
 - **Unit Testing**: Focuses on pure unit tests for `ReceiptsService` with no external dependencies for these tests.
 
+### Sample Test Images
+
+The `test/` directory contains a collection of sample images to help with manual testing and understanding various scenarios:
+
+-   **`test/valid_reciepts/`**: Contains clear and valid receipt images (e.g., `1.jpg`, `2.jpg`, `3.png`). These are useful for verifying successful extraction flows.
+-   **`test/skewed_receipts/`**: Includes receipt images that might be angled, partially blurry, or have some form of distortion (e.g., `1.png`, `2.png`, `3.png`). These help test the AI's robustness against common image imperfections.
+-   **`test/non_receipts/`**: Contains images that are not receipts (e.g., `1.webp`, `2.png` - these could be photos of objects, people, or other documents). Useful for testing the "NOT_A_RECEIPT" classification.
+-   **`test/inavlid_format/`**: Includes files with unsupported formats (e.g., `1.pdf`, `2.txt`). These are for testing the API's file type validation.
+
+These samples can be used with tools like Postman or `curl` to manually test the `/extract-receipt-details` endpoint and observe the API's behavior with different inputs. They can also serve as a basis for developing more comprehensive automated integration tests.
+
 ## 🏗️ Architecture
 
 ### Project Structure
@@ -515,7 +526,12 @@ src/
 ### Processing Metrics
 - **Average Processing Time**: 2-4 seconds per receipt (varies by image complexity)
 - **AI Service Timeout**: OpenAI default timeout with exponential backoff
-- **Confidence Thresholds**: 70% for partial success, 95% for full success
+- **Confidence Scores & Status**:
+  - **0.95**: High confidence, typically results in 'success' status.
+  - **0.80**: Lowered confidence due to mathematical inconsistencies in extracted totals/subtotals/taxes. May result in 'partial' status.
+  - **0.70**: Low confidence due to poor image quality (e.g., blurry items, unreadable text) but critical data like the total amount was still extracted. Often results in 'partial' status with warnings.
+  - **0.50**: Very low confidence due to very poor image quality where critical data (like the total amount) could not be extracted. Typically results in a 'failed' status from the validation service.
+  - The `ReceiptsValidationService` determines the final 'success', 'partial', or 'failed' status. A 'failed' status is assigned if critical data (vendor name, items, or total for non-poor-quality images) is missing. A 'partial' status is assigned if confidence is below 0.7 or there are more than two warnings.
 - **Retry Logic**: 3 attempts with 1s, 2s, 4s delays (exponential backoff)
 - **Database Performance**: Sub-second queries with indexed extraction_id
 

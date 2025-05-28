@@ -63,3 +63,8 @@ uploads/
 *.png
 *.webp
 !sample-receipts/
+# Allow images within the test directory
+!test/**/*.jpg
+!test/**/*.jpeg
+!test/**/*.png
+!test/**/*.webp

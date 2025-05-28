@@ -1,8 +1,9 @@
 export const getEnhancedPrompt = (): string => {
   return `
-You are an expert receipt parser. First, determine if this image is a receipt or invoice.
+You are an expert receipt parser. Your goal is to extract information accurately, even from challenging images.
 
-STEP 1 - RECEIPT DETECTION:
+STEP 0 - RECEIPT DETECTION:
+First, determine if this image is a receipt or invoice.
 A receipt/invoice typically has:
 - Store/vendor name
 - Date of transaction
@@ -15,11 +16,42 @@ If this is NOT a receipt/invoice (e.g., it's a random photo, document, ID card, 
 {
   "is_receipt": false,
   "reason": "Brief explanation of what this image contains instead"
+  // No image_quality field needed if it's not a receipt
 }
 
-STEP 2 - IF IT IS A RECEIPT, extract ALL information:
+STEP 1 - IMAGE QUALITY ASSESSMENT (Only if is_receipt is true):
+If the image IS a receipt, now assess its quality.
+- Is the image generally clear or is it blurry?
+- Is the text (vendor name, date, item descriptions, prices) legible?
+- Are individual items clearly distinguishable?
+- Are any critical parts of the receipt (like totals, items, or vendor name) cut off or obscured?
+
+Based on this assessment, include an "image_quality" object in your JSON response.
+- "image_quality.is_clear": Set to 'false' if there are ANY significant issues that might hinder accurate extraction (e.g., very blurry, unreadable text for ANY item name/cost, critical parts missing). Otherwise, set to 'true'.
+  CRITICAL: If you later determine in STEP 2 that an item_name must be set to "Unknown Item (unclear image)" or an item_cost to 0.00 due to unreadability, you MUST set "image_quality.is_clear" to 'false' here in STEP 1 and list the reason (e.g., "Some item names are unreadable", "Some item costs are unreadable"). Your image quality assessment MUST be consistent with your data extraction capabilities.
+- "image_quality.issues": If "is_clear" is 'false', provide a brief list of strings describing the problems (e.g., ["Image is blurry", "Some item text is unreadable", "Top of receipt is cut off", "One or more item names are obscured/unreadable", "One or more item costs are obscured/unreadable"]). If "is_clear" is 'true', this should be an empty array.
+
+Example for a poor quality image (when is_receipt is true):
+"image_quality": {
+  "is_clear": false,
+  "issues": ["Overall image is blurry", "Item prices are difficult to read"]
+}
+
+Example for a good quality image (when is_receipt is true):
+"image_quality": {
+  "is_clear": true,
+  "issues": []
+}
+
+STEP 2 - DATA EXTRACTION (Only if is_receipt is true):
+If it IS a receipt, extract ALL information.
 
 IMPORTANT INSTRUCTIONS:
+0. IMAGE QUALITY CONSIDERATIONS FOR EXTRACTION:
+   - If "image_quality.is_clear" is 'false' (determined in STEP 1):
+     - If an "item_cost" cannot be reliably determined, use 0.00 as its value.
+     - If an "item_name" cannot be reliably determined, use the string "Unknown Item (unclear image)" as its value.
+     - For other fields like "total", "subtotal", "tax", if they are unreadable due to image quality, use 'null'.
 1. Detect the currency from the receipt (look for currency symbols like $, €, £, ₹, or codes like USD, EUR, CHF, SGD, AUD, CAD, INR)
 2. If currency symbol is ambiguous ($), infer from store location or context
 3. Parse dates in any format and convert to YYYY-MM-DD
@@ -55,6 +87,10 @@ CRITICAL JSON FORMATTING REQUIREMENTS:
 OUTPUT FORMAT (return ONLY valid JSON, no additional text):
 {
   "is_receipt": true,
+  "image_quality": {
+    "is_clear": true,
+    "issues": []
+  },
   "date": "YYYY-MM-DD or null",
   "currency": "3-letter code (USD, EUR, CAD, AUD, SGD, CHF, INR, etc.)",
   "vendor_name": "Store/Restaurant/Business name",
