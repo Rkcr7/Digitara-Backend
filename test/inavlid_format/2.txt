@@ -1,0 +1,31 @@
+==================================================
+RECEIPT DETAILS
+==================================================
+
+MERCHANT INFORMATION
+-------------------------
+Business Name: Hanks Hankies
+Receipt Number: 2025040101
+
+TRANSACTION DETAILS
+-------------------------
+Date: April 1, 2025
+Payment Method: Cash
+
+ITEMS PURCHASED
+-------------------------
+  # Item                                   Qty        Price
+------------------------------------------------------------
+  1 Green hanky                              1    SGD 11.34
+  2 Red hanky                                2    SGD 38.40
+  3 Pink hanky                               1    SGD 54.70
+
+FINANCIAL SUMMARY
+-------------------------
+Subtotal:           SGD 104.44
+Tax (7.4%):     SGD 7.73
+-----------------------------------
+TOTAL:                   SGD 122.17
+==================================================
+
+Exported on: May 27, 2025 at 02:23 AM
