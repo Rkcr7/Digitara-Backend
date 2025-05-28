@@ -187,6 +187,15 @@ IMPORTANT INSTRUCTIONS:
 13. For tax-exclusive receipts: Ensure total = subtotal + tax (where tax is the sum of ALL taxes)
 14. CRITICAL: Extract monetary values EXACTLY as shown on the receipt without rounding
 
+CRITICAL JSON FORMATTING REQUIREMENTS:
+- ALL property names MUST be enclosed in double quotes
+- NO trailing commas after the last property in objects or arrays
+- NO JavaScript-style comments
+- NO single quotes for strings - use double quotes only
+- Ensure all brackets are properly closed
+- Numbers should not have quotes
+- Booleans should be true/false without quotes
+
 OUTPUT FORMAT (return ONLY valid JSON, no additional text):
 {
   "is_receipt": true,
@@ -242,6 +251,9 @@ VALIDATION RULES:
         .replace(/```\s*/g, '')
         .trim();
 
+      // // Log the cleaned content for debugging JSON parsing issues
+      // this.logger.debug('AI Response (cleaned):', cleanContent);
+
       const parsed = JSON.parse(cleanContent);
 
       // Check if it's a receipt first
@@ -273,6 +285,10 @@ VALIDATION RULES:
       if (error.message.startsWith('NOT_A_RECEIPT:')) {
         throw error;
       }
+      // // Log the malformed content that caused the parsing error
+      // this.logger.error('JSON parsing failed. Raw content that caused the error:', content);
+      // this.logger.error('Parsing error details:', error.message);
+      
       throw new Error(`Failed to parse AI response: ${error.message}`);
     }
   }
