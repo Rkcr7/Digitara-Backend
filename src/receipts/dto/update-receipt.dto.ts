@@ -11,16 +11,21 @@ import {
   IsBoolean,
 } from 'class-validator';
 
-export class ReceiptItemResponseDto {
+/**
+ * DTO for updating individual receipt items
+ */
+export class UpdateReceiptItemDto {
+  @IsOptional()
   @IsString()
   @Expose()
-  item_name: string;
+  item_name?: string;
 
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0, { message: 'Item cost must be positive' })
-  @Transform(({ value }) => Number(Number(value).toFixed(2)))
+  @Transform(({ value }) => value ? Number(Number(value).toFixed(2)) : undefined)
   @Expose()
-  item_cost: number;
+  item_cost?: number;
 
   @IsOptional()
   @IsNumber()
@@ -34,7 +39,10 @@ export class ReceiptItemResponseDto {
   original_name?: string;
 }
 
-export class TaxDetailsResponseDto {
+/**
+ * DTO for updating tax details
+ */
+export class UpdateTaxDetailsDto {
   @IsOptional()
   @IsString()
   @Expose()
@@ -46,7 +54,13 @@ export class TaxDetailsResponseDto {
   tax_type?: string;
 
   @IsOptional()
+  @IsBoolean()
+  @Expose()
+  tax_inclusive?: boolean;
+
+  @IsOptional()
   @IsArray()
+  @ValidateNested({ each: true })
   @Expose()
   additional_taxes?: Array<{
     name: string;
@@ -54,14 +68,19 @@ export class TaxDetailsResponseDto {
   }>;
 }
 
-export class ExtractionMetadataDto {
+/**
+ * DTO for updating extraction metadata (admin/system use)
+ */
+export class UpdateExtractionMetadataDto {
+  @IsOptional()
   @IsNumber()
   @Expose()
-  processing_time: number;
+  processing_time?: number;
 
+  @IsOptional()
   @IsString()
   @Expose()
-  ai_model: string;
+  ai_model?: string;
 
   @IsOptional()
   @IsArray()
@@ -70,23 +89,20 @@ export class ExtractionMetadataDto {
   warnings?: string[];
 }
 
-export class ReceiptResponseDto {
-  /**
-   * Extraction success status
-   */
-  @IsString()
-  @Expose()
-  status: 'success' | 'partial' | 'failed';
+/**
+ * Main DTO for updating receipt data
+ */
+export class UpdateReceiptDto {
 
-  /**
+
+    /**
    * Unique identifier for this extraction
    */
-  @IsString()
-  @Expose()
-  extraction_id: string;
-
+    @IsString()
+    @Expose()
+    extraction_id: string;
   /**
-   * Receipt date in YYYY-MM-DD format
+   * Update receipt date in YYYY-MM-DD format
    */
   @IsOptional()
   @IsDateString({}, { message: 'Date must be in YYYY-MM-DD format' })
@@ -94,8 +110,9 @@ export class ReceiptResponseDto {
   date?: string;
 
   /**
-   * Currency code (ISO 4217)
+   * Update currency code (ISO 4217)
    */
+  @IsOptional()
   @IsString()
   @IsIn([
     'USD',
@@ -112,26 +129,28 @@ export class ReceiptResponseDto {
     'HKD',
   ])
   @Expose()
-  currency: string;
+  currency?: string;
 
   /**
-   * Vendor/Store name
+   * Update vendor/store name
    */
+  @IsOptional()
   @IsString()
   @Expose()
-  vendor_name: string;
+  vendor_name?: string;
 
   /**
-   * Array of extracted receipt items
+   * Update array of receipt items
    */
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => ReceiptItemResponseDto)
+  @Type(() => UpdateReceiptItemDto)
   @Expose()
-  receipt_items: ReceiptItemResponseDto[];
+  receipt_items?: UpdateReceiptItemDto[];
 
   /**
-   * Subtotal amount (before tax)
+   * Update subtotal amount (before tax)
    */
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -143,39 +162,36 @@ export class ReceiptResponseDto {
   subtotal?: number;
 
   /**
-   * Tax amount
+   * Update tax amount
    */
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  @Transform(({ value }) => Number(Number(value).toFixed(2)))
+  @Transform(({ value }) => value ? Number(Number(value).toFixed(2)) : undefined)
   @Expose()
-  tax: number;
+  tax?: number;
 
   /**
-   * Tax details (rate, type, etc.)
+   * Update tax details (rate, type, etc.)
    */
   @IsOptional()
   @ValidateNested()
-  @Type(() => TaxDetailsResponseDto)
+  @Type(() => UpdateTaxDetailsDto)
   @Expose()
-  tax_details?: TaxDetailsResponseDto;
+  tax_details?: UpdateTaxDetailsDto;
 
   /**
-   * Total amount
+   * Update total amount
    */
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  @Transform(({ value }) => Number(Number(value).toFixed(2)))
+  @Transform(({ value }) => value ? Number(Number(value).toFixed(2)) : undefined)
   @Expose()
-  total: number;
-
-  @IsOptional()
-  @IsBoolean()
-  @Expose()
-  is_valid?: boolean;
+  total?: number;
 
   /**
-   * Payment method (if detected)
+   * Update payment method
    */
   @IsOptional()
   @IsString()
@@ -183,7 +199,7 @@ export class ReceiptResponseDto {
   payment_method?: string;
 
   /**
-   * Receipt number (if available)
+   * Update receipt number
    */
   @IsOptional()
   @IsString()
@@ -191,7 +207,7 @@ export class ReceiptResponseDto {
   receipt_number?: string;
 
   /**
-   * Confidence score (0-1)
+   * Update confidence score (0-1) - typically system managed
    */
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -203,58 +219,28 @@ export class ReceiptResponseDto {
   confidence_score?: number;
 
   /**
-   * URL to the original image (if saved)
-   */
-  @IsOptional()
-  @IsString()
-  @Expose()
-  image_url?: string;
-
-  /**
-   * Extraction metadata (optional, only if requested)
+   * Update extraction metadata (admin/system use)
    */
   @IsOptional()
   @ValidateNested()
-  @Type(() => ExtractionMetadataDto)
+  @Type(() => UpdateExtractionMetadataDto)
   @Expose()
-  extraction_metadata?: ExtractionMetadataDto;
-
-  /**
-   * Timestamp when extraction was performed
-   */
-  @IsDateString()
-  @Expose()
-  extracted_at: string;
+  extraction_metadata?: UpdateExtractionMetadataDto;
 }
 
+
+
 /**
- * Error response DTO for failed extractions
+ * DTO for updating receipt status
  */
-export class ExtractionErrorResponseDto {
+export class UpdateReceiptStatusDto {
   @IsString()
+  @IsIn(['success', 'partial', 'failed'])
   @Expose()
-  status: 'error';
-
-  @IsString()
-  @Expose()
-  error_code: string;
-
-  @IsString()
-  @Expose()
-  message: string;
+  status: 'success' | 'partial' | 'failed';
 
   @IsOptional()
   @IsString()
   @Expose()
-  extraction_id?: string;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Expose()
-  details?: string[];
-
-  @IsDateString()
-  @Expose()
-  timestamp: string;
+  reason?: string;
 }

@@ -1,5 +1,5 @@
 {
-  "name": "receipt-extractor-backend",
+  "name": "digitara-backend",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -30,7 +30,7 @@
     "joi": "^17.13.3",
     "multer": "^2.0.0",
     "openai": "^4.0.0",
-    "receipt-extractor-backend": "file:",
+    "digitara-backend": "file:",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sharp": "^0.33.5",

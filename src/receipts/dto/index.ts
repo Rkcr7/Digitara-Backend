@@ -1,6 +1,8 @@
 // Request DTOs
 export { ExtractReceiptDto } from './extract-receipt.dto';
 
+export * from './update-receipt.dto';
+
 // Response DTOs
 export {
   ReceiptItemResponseDto,

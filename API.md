@@ -1,4 +1,4 @@
-# Receipt Extractor API Documentation
+# Digitara API Documentation
 
 ## Base URL
 ```

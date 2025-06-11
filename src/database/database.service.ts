@@ -11,6 +11,7 @@ export interface SaveReceiptData {
   total: number;
   payment_method?: string;
   receipt_number?: string;
+  is_valid?: boolean;
   confidence_score?: number;
   image_url?: string;
   status: 'success' | 'partial' | 'failed';
@@ -39,6 +40,7 @@ export interface SavedReceiptData {
   payment_method?: string;
   receipt_number?: string;
   confidence_score?: number;
+  is_valid?: boolean;
   image_url?: string;
   status: string;
   extracted_at: string;
@@ -85,6 +87,7 @@ export class DatabaseService {
           subtotal: data.subtotal || null,
           tax: data.tax,
           total: data.total,
+          is_valid: data.is_valid,
           payment_method: data.payment_method || null,
           receipt_number: data.receipt_number || null,
           confidence_score: data.confidence_score || null,
@@ -158,6 +161,7 @@ export class DatabaseService {
         confidence_score: receiptData.confidence_score,
         image_url: receiptData.image_url,
         status: receiptData.status,
+        is_valid: receiptData.is_valid,
         extracted_at: receiptData.extracted_at,
         created_at: receiptData.created_at,
         receipt_items: itemsData.map(item => ({

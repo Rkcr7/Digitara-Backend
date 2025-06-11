@@ -1,7 +1,7 @@
-# Receipt Extractor Backend
+# Digitara Backend
 
 <div align="center">
-  <img src="public/logo.png" alt="Receipt Extractor Logo" width="200" height="200">
+  <img src="public/logo.png" alt="Digitara Logo" width="200" height="200">
   
   [![NestJS](https://img.shields.io/badge/NestJS-E0234E?style=flat&logo=nestjs&logoColor=white)](https://nestjs.com/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -9,14 +9,14 @@
   [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)](https://supabase.com/)
   [![Jest](https://img.shields.io/badge/Jest-C21325?style=flat&logo=jest&logoColor=white)](https://jestjs.io/)
   
-  **AI-Powered Receipt Processing API with Cloud Storage & Database**
+  **Intelligent Document Processing API with Cloud Storage & Database**
   
-  *Transform receipt images into structured data with advanced AI extraction, automatic persistence, and cloud storage*
+  *Transform receipt images into structured data with enterprise-grade AI intelligence, automatic persistence, and secure cloud storage*
 </div>
 
 ## 🎯 Overview
 
-The Receipt Extractor Backend is a robust NestJS-based API service that automatically extracts structured data from receipt images using Google's Gemini 2.0 Flash AI model. Upload a receipt image and get back detailed information including vendor details, itemized purchases, tax calculations, and totals in JSON format. All extractions are automatically saved to the cloud database with receipt history retrieval capabilities.
+The Digitara Backend is a robust NestJS-based API service that automatically extracts structured data from receipt images using Google's Gemini 2.0 Flash AI model. Upload a receipt image and get back detailed information including vendor details, itemized purchases, tax calculations, and totals in JSON format. All extractions are automatically saved to the cloud database with receipt history retrieval capabilities.
 
 ## ✨ Key Features
 
@@ -66,7 +66,7 @@ The Receipt Extractor Backend is a robust NestJS-based API service that automati
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd receipt-extractor-backend-ai-engineer-Rkcr7
+   cd digitara-backend
    ```
 
 2. **Install dependencies**
@@ -546,3 +546,9 @@ src/
 - **CDN Storage**: Global image delivery via Supabase CDN
 - **Graceful Degradation**: Continues operation if database/storage fails
 - **Connection Pooling**: Efficient database connection management
+
+---
+
+## 📜 Disclaimer
+
+This project was originally created as part of a technical assessment, but all code, logic, and design presented here are my own work, rebranded and enhanced independently.
