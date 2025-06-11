@@ -65,7 +65,7 @@ The Digitara Backend is a robust NestJS-based API service that automatically ext
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Rkcr7/Digitara-Backend.git
    cd digitara-backend
    ```
 
@@ -440,14 +440,7 @@ The primary test suite is `src/receipts/receipts.service.spec.ts`, which covers 
 
 ### Sample Test Images
 
-The `test/` directory contains a collection of sample images to help with manual testing and understanding various scenarios:
-
--   **`test/valid_reciepts/`**: Contains clear and valid receipt images (e.g., `1.jpg`, `2.jpg`, `3.png`). These are useful for verifying successful extraction flows.
--   **`test/skewed_receipts/`**: Includes receipt images that might be angled, partially blurry, or have some form of distortion (e.g., `1.png`, `2.png`, `3.png`). These help test the AI's robustness against common image imperfections.
--   **`test/non_receipts/`**: Contains images that are not receipts (e.g., `1.webp`, `2.png` - these could be photos of objects, people, or other documents). Useful for testing the "NOT_A_RECEIPT" classification.
--   **`test/inavlid_format/`**: Includes files with unsupported formats (e.g., `1.pdf`, `2.txt`). These are for testing the API's file type validation.
-
-These samples can be used with tools like Postman or `curl` to manually test the `/extract-receipt-details` endpoint and observe the API's behavior with different inputs. They can also serve as a basis for developing more comprehensive automated integration tests.
+The `test/` directory contains a collection of sample images to help with manual testing and understanding various scenarios. These assets can be used with tools like Postman or `curl` to manually test the `/extract-receipt-details` endpoint and observe the API's behavior with different inputs. They can also serve as a basis for developing more comprehensive automated integration tests.
 
 ## 🏗️ Architecture
 
