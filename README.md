@@ -1,5 +1,7 @@
 # Digitara Backend
 
+> This is the backend API for the **Digitara** application, which is live at [**https://digitara.cloud**](https://digitara.cloud).
+
 <div align="center">
   <img src="public/logo.png" alt="Digitara Logo" width="200" height="200">
   
@@ -545,29 +547,22 @@ src/
 
 ## 🚀 Deployment
 
-This application is optimized for deployment as a containerized application on services like Google Cloud Run.
+This application is designed for continuous deployment to **Google Cloud Run** directly from the `main` branch.
 
-### Docker Build
+### Git-Based Deployment (Google Cloud Run)
 
-To build the Docker image for this application, run the following command from the root of the project:
-
-```bash
-docker build -t digitara-backend .
-```
-
-This will create a lightweight, secure, and production-ready Docker image based on the multi-stage `Dockerfile`.
-
-### Google Cloud Run
-
-1.  **Build & Push Image:** Build the image and push it to Google Artifact Registry.
-    ```bash
-    gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/digitara-backend
-    ```
-2.  **Deploy to Cloud Run:** Deploy the image from the Artifact Registry.
-    ```bash
-    gcloud run deploy digitara-backend --image gcr.io/YOUR_PROJECT_ID/digitara-backend --platform managed
-    ```
-3.  **Configure Environment Variables:** In the Cloud Run service settings, securely add all the necessary environment variables from your `.env` file (`GEMINI_API_KEY`, `SUPABASE_URL`, etc.).
+1.  **Connect to GitHub:** In the Google Cloud Run "Create Service" flow, choose to **"Continuously deploy new revisions from a source repository"**. Connect it to your `Digitara-Backend` GitHub repository.
+2.  **Build Settings:**
+    *   **Branch:** `main`
+    *   **Build Type:** `Dockerfile` (Google Cloud Build will automatically find and use the `Dockerfile` in this repository).
+3.  **Service Configuration:**
+    *   **Port:** `3000`
+    *   **CPU & Memory:** Start with `1 vCPU` and `512MiB`.
+    *   **Autoscaling:** Min `0`, Max `2` (or higher as needed).
+4.  **Environment Variables & Secrets:**
+    *   In the "Variables & Secrets" tab, add all the necessary environment variables from the `.env.example` file.
+    *   **CRITICAL:** Use **Google Secret Manager** for sensitive values like `GEMINI_API_KEY` and `SUPABASE_SERVICE_KEY`.
+5.  **Deploy:** Create the service. All subsequent pushes to the `main` branch will automatically build and deploy a new version.
 
 ---
 
