@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -10,6 +11,9 @@ async function bootstrap() {
 
   // Trust proxy headers for rate limiting
   app.set('trust proxy', 1);
+
+  // Basic security middleware
+  app.use(helmet());
 
   // Enable CORS
   app.enableCors({
