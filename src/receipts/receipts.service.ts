@@ -10,6 +10,7 @@ import {
   ReceiptResponseDto,
   validateReceiptFile,
   validateExtractionConsistency,
+  UpdateReceiptDto,
 } from './dto';
 
 @Injectable()
@@ -80,6 +81,8 @@ export class ReceiptsService {
       // Determine extraction status based on data quality
       const status = this.validationService.determineExtractionStatus(extractedData, allWarnings);
 
+      const isValid = this.validationService.validateReceiptTotal(extractedData.receipt_items||[],extractedData.tax||0,extractedData.total||0);
+
       // Build response data
       const responseData = {
         status,
@@ -94,6 +97,7 @@ export class ReceiptsService {
         total: extractedData.total,
         payment_method: extractedData.payment_method,
         receipt_number: extractedData.receipt_number,
+        is_valid: isValid,
         confidence_score: extractedData.confidence_score,
         image_url: imageUrl,
         extracted_at: new Date().toISOString(),
@@ -127,6 +131,7 @@ export class ReceiptsService {
           payment_method: extractedData.payment_method,
           receipt_number: extractedData.receipt_number,
           confidence_score: extractedData.confidence_score,
+          is_valid: isValid,
           image_url: imageUrl,
           status,
           receipt_items: extractedData.receipt_items || [],
@@ -280,7 +285,31 @@ export class ReceiptsService {
     }
   }
 
+
+ /** 
+  @param updateDto - Update receipt DTO
+  @returns Promise<Void>
+  */
+  async updateExtraction(updateDto:UpdateReceiptDto):Promise<void>{
+    try{
+    const existingReceipt = await this.databaseService.getReceiptByExtractionId(updateDto.extraction_id);
+    if(!existingReceipt){
+      this.logger.error(`Receipt not found for extraction ID: ${updateDto.extraction_id}`);
+      throw new Error('Receipt not found');
+    }
+    const isValid = this.validationService.validateReceiptTotal(updateDto.receipt_items,updateDto.tax||0,updateDto.total||0);
+   
+    };
+    await this.databaseService.saveReceipt(updatedReceipt);
+    }catch(error){
+      this.logger.error(`Failed to update receipt: ${error.message}`);
+      throw error;
+    }
+  }
   /**
+
+
+
    * Validate extraction results and provide suggestions
    * @param data - Extracted receipt data
    * @returns Validation results with suggestions

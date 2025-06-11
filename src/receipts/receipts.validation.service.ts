@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { ExtractionErrorResponseDto, validateExtractionConsistency } from './dto';
+import { ReceiptItemDto } from 'src/ai/ai.service';
 
 @Injectable()
 export class ReceiptsValidationService {
@@ -107,6 +108,8 @@ export class ReceiptsValidationService {
    * @param data - Extracted receipt data
    * @returns Validation results with suggestions
    */
+
+  
   async validateExtraction(data: any): Promise<{
     isValid: boolean;
     warnings: string[];
@@ -145,6 +148,12 @@ export class ReceiptsValidationService {
       warnings,
       suggestions,
     };
+  }
+
+  validateReceiptTotal(items:ReceiptItemDto[],tax:number,total:number):boolean{
+    const itemscalculatedTotal = items.reduce((sum,item)=>sum+(item.item_cost*item.quantity),0);
+    const calculatedTotal = itemscalculatedTotal + tax;
+    return Math.abs(calculatedTotal-total)<0.01;
   }
 
   /**
