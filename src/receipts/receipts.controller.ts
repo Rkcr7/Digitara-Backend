@@ -14,6 +14,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ReceiptsService } from './receipts.service';
 import { ExtractReceiptDto, ReceiptResponseDto } from './dto';
 
@@ -51,6 +52,7 @@ export class ReceiptsController {
    * Get service health and capabilities
    * GET /extract-receipt-details/health
    */
+  @SkipThrottle()
   @Get('health')
   async getServiceHealth(): Promise<{
     status: 'healthy' | 'degraded' | 'unhealthy';

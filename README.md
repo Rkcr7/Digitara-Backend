@@ -37,6 +37,7 @@ The Digitara Backend is a robust NestJS-based API service that automatically ext
 - **Image Optimization**: Automatic resize (max 2048px), JPEG conversion (85% quality), using Sharp
 - **Retry Mechanism**: Exponential backoff for reliable AI service calls
 - **Error Handling**: Comprehensive error categorization and user-friendly messages
+- **Rate Limiting**: IP-based rate limiting to protect against brute-force attacks (10 requests/minute).
 
 ### 📊 **Advanced Features**
 - **Tax Detection**: Automatically detects tax-inclusive vs tax-exclusive receipts
@@ -542,6 +543,34 @@ src/
 
 ---
 
-## 📜 Disclaimer
+## 🚀 Deployment
+
+This application is optimized for deployment as a containerized application on services like Google Cloud Run.
+
+### Docker Build
+
+To build the Docker image for this application, run the following command from the root of the project:
+
+```bash
+docker build -t digitara-backend .
+```
+
+This will create a lightweight, secure, and production-ready Docker image based on the multi-stage `Dockerfile`.
+
+### Google Cloud Run
+
+1.  **Build & Push Image:** Build the image and push it to Google Artifact Registry.
+    ```bash
+    gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/digitara-backend
+    ```
+2.  **Deploy to Cloud Run:** Deploy the image from the Artifact Registry.
+    ```bash
+    gcloud run deploy digitara-backend --image gcr.io/YOUR_PROJECT_ID/digitara-backend --platform managed
+    ```
+3.  **Configure Environment Variables:** In the Cloud Run service settings, securely add all the necessary environment variables from your `.env` file (`GEMINI_API_KEY`, `SUPABASE_URL`, etc.).
+
+---
+
+##  Disclaimer
 
 This project was originally created as part of a technical assessment, but all code, logic, and design presented here are my own work, rebranded and enhanced independently.
