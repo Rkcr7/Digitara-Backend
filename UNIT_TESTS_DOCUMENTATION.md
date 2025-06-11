@@ -1,8 +1,8 @@
-# Unit Tests Documentation - Receipt Extractor Backend
+# Unit Tests Documentation - Digitara Backend
 
 ## Overview
 
-This document provides comprehensive documentation for the unit tests implemented for the Receipt Extractor backend service. All tests are located in `src/receipts/receipts.service.spec.ts` and cover the core functionality as specified in the backend requirements document.
+This document provides comprehensive documentation for the unit tests implemented for the Digitara backend service. All tests are located in `src/receipts/receipts.service.spec.ts` and cover the core functionality as specified in the backend requirements document.
 
 ## Test Results Summary
 
@@ -211,4 +211,4 @@ When adding new dependencies:
 
 ## Conclusion
 
-The unit test suite provides comprehensive coverage of the Receipt Extractor service functionality, meeting all requirements specified in the backend document and ensuring robust error handling and edge case coverage. All 25 tests pass consistently, providing confidence in the service's reliability and correctness. 
+The unit test suite provides comprehensive coverage of the Digitara service functionality, meeting all requirements specified in the backend document and ensuring robust error handling and edge case coverage. All 25 tests pass consistently, providing confidence in the service's reliability and correctness.

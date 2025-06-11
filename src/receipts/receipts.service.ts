@@ -286,30 +286,37 @@ export class ReceiptsService {
   }
 
 
- /** 
-  @param updateDto - Update receipt DTO
-  @returns Promise<Void>
-  */
-  async updateExtraction(updateDto:UpdateReceiptDto):Promise<void>{
-    try{
-    const existingReceipt = await this.databaseService.getReceiptByExtractionId(updateDto.extraction_id);
-    if(!existingReceipt){
-      this.logger.error(`Receipt not found for extraction ID: ${updateDto.extraction_id}`);
-      throw new Error('Receipt not found');
-    }
-    const isValid = this.validationService.validateReceiptTotal(updateDto.receipt_items,updateDto.tax||0,updateDto.total||0);
-   
-    };
-    await this.databaseService.saveReceipt(updatedReceipt);
-    }catch(error){
-      this.logger.error(`Failed to update receipt: ${error.message}`);
-      throw error;
-    }
-  }
   /**
+   * Update extraction data
+   * @param updateDto - Update receipt DTO
+   * @returns Promise<void>
+   *
+   * TODO: Implement update functionality with proper type compatibility
+   */
+  // async updateExtraction(updateDto: UpdateReceiptDto): Promise<void> {
+  //   try {
+  //     const existingReceipt = await this.databaseService.getReceiptByExtractionId(updateDto.extraction_id);
+  //     if (!existingReceipt) {
+  //       this.logger.error(`Receipt not found for extraction ID: ${updateDto.extraction_id}`);
+  //       throw new Error('Receipt not found');
+  //     }
+  //     const isValid = this.validationService.validateReceiptTotal(updateDto.receipt_items, updateDto.tax || 0, updateDto.total || 0);
+  //
+  //     // Update the receipt with new data
+  //     const updatedReceipt = {
+  //       ...existingReceipt,
+  //       ...updateDto,
+  //       is_valid: isValid,
+  //     };
+  //
+  //     await this.databaseService.saveReceipt(updatedReceipt);
+  //   } catch (error) {
+  //     this.logger.error(`Failed to update receipt: ${error.message}`);
+  //     throw error;
+  //   }
+  // }
 
-
-
+  /**
    * Validate extraction results and provide suggestions
    * @param data - Extracted receipt data
    * @returns Validation results with suggestions
